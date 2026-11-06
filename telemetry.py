@@ -23,15 +23,17 @@ def calculate_haversine_distance(lat1, lon1, lat2, lon2):
 
 
 def compute_telemetry_metrics(coord_history):
-    """Compute total distance and per-segment speed and pace.
+    """Compute total distance, overall average speed, and per-segment metrics.
 
     Args:
         coord_history: Iterable of (latitude, longitude, timestamp_seconds) tuples.
 
     Returns:
-        A tuple containing total distance in kilometers and a list of segment
-        dictionaries. Each segment has distance_km, speed_kmh, and pace (minutes
-        per kilometer). Segments with non-positive elapsed time are omitted.
+        A tuple of (total_distance_km, segments, average_speed_kmh). Each segment
+        dictionary has distance_km, speed_kmh, and pace (minutes per kilometer).
+        Overall average speed is total distance divided by elapsed time from the
+        first to last point, or 0.0 when the elapsed time is not positive.
+        Segments with non-positive elapsed time are omitted.
     """
     total_distance = 0.0
     segments = []
@@ -55,7 +57,14 @@ def compute_telemetry_metrics(coord_history):
                 }
             )
 
-    return total_distance, segments
+    elapsed_hours = (
+        (coord_history[-1][2] - coord_history[0][2]) / 3600.0
+        if len(coord_history) > 1
+        else 0.0
+    )
+    average_speed_kmh = total_distance / elapsed_hours if elapsed_hours > 0 else 0.0
+
+    return total_distance, segments, average_speed_kmh
 
 
 if __name__ == "__main__":
@@ -66,6 +75,7 @@ if __name__ == "__main__":
         (23.3465, 85.3120, 25),
     ]
 
-    total_dist, telemetry_log = compute_telemetry_metrics(track_data)
+    total_dist, telemetry_log, average_speed = compute_telemetry_metrics(track_data)
     print(f"Total Traversed Distance: {total_dist:.3f} km")
+    print(f"Average Speed: {average_speed:.2f} km/h")
     print(f"Segment metrics: {telemetry_log}")
